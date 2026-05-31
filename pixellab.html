@@ -1,10 +1,1187 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelLab — 像素暗房</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --bg2: #161616;
+    --bg3: #1e1e1e;
+    --border: #2a2a2a;
+    --border-active: #444;
+    --text: #e8e6e1;
+    --text-muted: #666;
+    --text-dim: #999;
+    --accent: #c8f53c;
+    --accent-dim: #8fb028;
+    --red: #f04040;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    grid-template-rows: 48px 1fr 40px;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--text-muted); font-weight: 400; }
+
+  .header-tags {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  aside.left {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--bg2);
+    padding: 0;
+  }
+
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+
+  .panel-section h3 {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .drop-zone {
+    border: 1px dashed var(--border-active);
+    padding: 24px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(200,245,60,0.04);
+  }
+
+  .drop-icon {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 6px;
+    opacity: 0.5;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .mode-btn {
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+  }
+
+  .mode-btn:hover { border-color: var(--border-active); color: var(--text); }
+  .mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,245,60,0.06); }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .param-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+
+  .param-value {
+    color: var(--accent);
+    font-size: 11px;
+    min-width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { background: #fff; }
+
+  select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 8px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .input-row label { color: var(--text-muted); font-size: 11px; min-width: 20px; }
+
+  input[type=number] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 8px;
+    width: 70px;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type=number]:focus { border-color: var(--accent); }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .btn:hover { border-color: var(--border-active); color: var(--text); }
+
+  .btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .btn.primary:hover { background: var(--accent); color: #000; }
+
+  .btn.danger { border-color: #3a2020; color: #a05050; }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .canvas-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #main-canvas {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  #crop-overlay {
+    position: absolute;
+    border: 1px solid var(--accent);
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    display: none;
+  }
+
+  .crop-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    pointer-events: all;
+    cursor: pointer;
+  }
+
+  .crop-handle.tl { top: -4px; left: -4px; cursor: nw-resize; }
+  .crop-handle.tr { top: -4px; right: -4px; cursor: ne-resize; }
+  .crop-handle.bl { bottom: -4px; left: -4px; cursor: sw-resize; }
+  .crop-handle.br { bottom: -4px; right: -4px; cursor: se-resize; }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    line-height: 2.2;
+  }
+
+  .empty-state .big {
+    font-family: var(--sans);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+    display: block;
+    margin-bottom: 16px;
+    letter-spacing: -0.04em;
+  }
+
+  aside.right {
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--bg2);
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--text-muted); }
+  .info-val { color: var(--text); font-weight: 500; }
+
+  #histogram-canvas {
+    width: 100%;
+    height: 60px;
+    display: block;
+  }
+
+  .preview-strip {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .color-swatch {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .color-swatch:hover { transform: scale(1.15); }
+
+  footer {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    gap: 20px;
+  }
+
+  #status-text { flex: 1; }
+
+  .crop-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .preset-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .preset-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+  .preset-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .hidden { display: none !important; }
+  .separator { height: 1px; background: var(--border); margin: 8px 0; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .checkbox-row label { font-size: 11px; color: var(--text-dim); cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--accent); width: 12px; height: 12px; }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 6px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text-dim); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+</style>
 </head>
 <body>
+<div id="app">
 
+  <header>
+    <div class="logo">Pixel<span>Lab</span></div>
+    <div style="color:var(--text-muted);font-size:11px;letter-spacing:0.08em;">像素暗房工作台</div>
+    <div class="header-tags">
+      <span class="tag">裁剪</span>
+      <span class="tag">抖动</span>
+      <span class="tag">色阶</span>
+      <span class="tag">像素艺术</span>
+    </div>
+  </header>
+
+  <aside class="left">
+    <div class="panel-section">
+      <h3>导入图像</h3>
+      <div class="drop-zone" id="drop-zone">
+        <span class="drop-icon">⬇</span>
+        拖拽图片到此处<br>
+        <span style="font-size:10px;opacity:0.6">或点击选择文件</span>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+    </div>
+
+    <div class="panel-section">
+      <h3>裁剪 / 尺寸</h3>
+      <div class="input-row">
+        <label>W</label>
+        <input type="number" id="out-w" value="800" min="1" max="4096">
+        <label>H</label>
+        <input type="number" id="out-h" value="600" min="1" max="4096">
+      </div>
+      <div class="crop-presets">
+        <button class="preset-btn active" data-ratio="free">自由</button>
+        <button class="preset-btn" data-ratio="1:1">1:1</button>
+        <button class="preset-btn" data-ratio="4:3">4:3</button>
+        <button class="preset-btn" data-ratio="16:9">16:9</button>
+        <button class="preset-btn" data-ratio="3:2">3:2</button>
+        <button class="preset-btn" data-ratio="2:3">2:3</button>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn primary" id="btn-crop">✂ 应用裁剪</button>
+        <button class="btn" id="btn-reset-crop">复原裁剪</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>处理模式</h3>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="none">原图</button>
+        <button class="mode-btn" data-mode="bw">纯黑白</button>
+        <button class="mode-btn" data-mode="dither">抖动明度</button>
+        <button class="mode-btn" data-mode="halftone">色阶像素</button>
+      </div>
+    </div>
+
+    <div class="panel-section" id="panel-bw" style="display:none">
+      <h3>黑白参数</h3>
+      <div class="param-row">
+        <span class="param-label">阈值</span>
+        <input type="range" id="bw-threshold" min="0" max="255" value="128">
+        <span class="param-value" id="bw-threshold-val">128</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">对比度</span>
+        <input type="range" id="bw-contrast" min="-100" max="100" value="0">
+        <span class="param-value" id="bw-contrast-val">0</span>
+      </div>
+    </div>
+
+    <div class="panel-section" id="panel-dither" style="display:none">
+      <h3>抖动参数</h3>
+      <div class="param-row">
+        <span class="param-label">算法</span>
+      </div>
+      <select id="dither-algo" style="margin-bottom:10px">
+        <option value="floyd">Floyd-Steinberg</option>
+        <option value="atkinson">Atkinson</option>
+        <option value="ordered">有序抖动 (Bayer)</option>
+        <option value="random">随机抖动</option>
+      </select>
+      <div class="param-row">
+        <span class="param-label">阈值</span>
+        <input type="range" id="dither-threshold" min="0" max="255" value="128">
+        <span class="param-value" id="dither-threshold-val">128</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">噪点强度</span>
+        <input type="range" id="dither-noise" min="0" max="100" value="0">
+        <span class="param-value" id="dither-noise-val">0</span>
+      </div>
+    </div>
+
+    <div class="panel-section" id="panel-halftone" style="display:none">
+      <h3>色阶像素参数</h3>
+      <div class="param-row">
+        <span class="param-label">色阶数</span>
+        <input type="range" id="ht-levels" min="2" max="16" value="4">
+        <span class="param-value" id="ht-levels-val">4</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">像素块</span>
+        <input type="range" id="ht-block" min="2" max="32" value="6">
+        <span class="param-value" id="ht-block-val">6</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">排列</span>
+      </div>
+      <select id="ht-pattern" style="margin-bottom:10px">
+        <option value="square">方块</option>
+        <option value="circle">圆形</option>
+        <option value="line">横线</option>
+        <option value="cross">十字</option>
+        <option value="diamond">菱形</option>
+      </select>
+      <div class="checkbox-row">
+        <input type="checkbox" id="ht-color">
+        <label for="ht-color">保留色彩</label>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <button class="btn primary" id="btn-process">▶ 渲染预览</button>
+      <button class="btn" id="btn-export">↓ 导出 PNG</button>
+      <button class="btn" id="btn-export-jpg">↓ 导出 JPG</button>
+      <button class="btn danger" id="btn-clear">清空</button>
+    </div>
+  </aside>
+
+  <main id="main-area">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <div class="empty-state" id="empty-state">
+        <span class="big">暗房</span>
+        导入图像开始创作<br>
+        <span style="font-size:10px;letter-spacing:0.1em;color:var(--border)">DRAG · DROP · CREATE</span>
+      </div>
+      <canvas id="main-canvas" style="display:none"></canvas>
+      <div id="crop-overlay">
+        <div class="crop-handle tl" data-corner="tl"></div>
+        <div class="crop-handle tr" data-corner="tr"></div>
+        <div class="crop-handle bl" data-corner="bl"></div>
+        <div class="crop-handle br" data-corner="br"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="right">
+    <div class="tabs">
+      <button class="tab active" data-tab="info">信息</button>
+      <button class="tab" data-tab="histogram">直方图</button>
+      <button class="tab" data-tab="palette">调色板</button>
+    </div>
+
+    <div class="tab-content active panel-section" id="tab-info" style="border-bottom:none">
+      <div id="info-rows">
+        <div class="info-row"><span class="info-key">状态</span><span class="info-val" id="inf-status">等待图像</span></div>
+        <div class="info-row"><span class="info-key">原始尺寸</span><span class="info-val" id="inf-orig">—</span></div>
+        <div class="info-row"><span class="info-key">输出尺寸</span><span class="info-val" id="inf-out">—</span></div>
+        <div class="info-row"><span class="info-key">处理模式</span><span class="info-val" id="inf-mode">原图</span></div>
+        <div class="info-row"><span class="info-key">色深</span><span class="info-val" id="inf-depth">—</span></div>
+        <div class="info-row"><span class="info-key">文件名</span><span class="info-val" id="inf-name">—</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content panel-section" id="tab-histogram" style="border-bottom:none">
+      <canvas id="histogram-canvas"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:10px;color:var(--text-muted)">暗部</span>
+        <span style="font-size:10px;color:var(--text-muted)">高光</span>
+      </div>
+    </div>
+
+    <div class="tab-content panel-section" id="tab-palette" style="border-bottom:none">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">量化主色（点击复制）</div>
+      <div class="preview-strip" id="palette-strip"></div>
+      <div id="hex-display" style="font-size:10px;color:var(--accent);margin-top:8px;min-height:16px"></div>
+    </div>
+  </aside>
+
+  <footer>
+    <span id="status-text">准备就绪 — 拖拽或点击左侧导入图像</span>
+    <span id="cursor-pos" style="color:var(--text-muted)"></span>
+  </footer>
+</div>
+
+<canvas id="work-canvas" style="display:none"></canvas>
+
+<script>
+const state = {
+  origImage: null,
+  croppedImage: null,
+  processedCanvas: null,
+  mode: 'none',
+  cropRatio: null,
+  fileName: 'image',
+  cropBox: null,
+  isDraggingCrop: false,
+  dragCorner: null,
+  dragStart: null,
+  displayScale: 1,
+  canvasOffset: {x:0, y:0}
+};
+
+const $ = id => document.getElementById(id);
+const mainCanvas = $('main-canvas');
+const workCanvas = $('work-canvas');
+const ctx = mainCanvas.getContext('2d');
+const wctx = workCanvas.getContext('2d');
+
+function setStatus(msg) { $('status-text').textContent = msg; }
+
+$('drop-zone').addEventListener('click', () => $('file-input').click());
+
+$('drop-zone').addEventListener('dragover', e => {
+  e.preventDefault();
+  $('drop-zone').classList.add('drag-over');
+});
+
+$('drop-zone').addEventListener('dragleave', () => $('drop-zone').classList.remove('drag-over'));
+
+$('drop-zone').addEventListener('drop', e => {
+  e.preventDefault();
+  $('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImageFile(file);
+});
+
+$('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadImageFile(e.target.files[0]);
+});
+
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImageFile(file);
+});
+
+function loadImageFile(file) {
+  state.fileName = file.name.replace(/\.[^.]+$/, '');
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.origImage = img;
+    state.croppedImage = img;
+    $('out-w').value = img.width;
+    $('out-h').value = img.height;
+    $('inf-orig').textContent = `${img.width} × ${img.height}`;
+    $('inf-out').textContent = `${img.width} × ${img.height}`;
+    $('inf-name').textContent = state.fileName;
+    $('inf-status').textContent = '已加载';
+    renderToMain(img);
+    drawHistogram(img);
+    extractPalette(img);
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+function renderToMain(img) {
+  mainCanvas.width = img.width;
+  mainCanvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+  $('empty-state').style.display = 'none';
+  mainCanvas.style.display = 'block';
+  setStatus(`已加载: ${img.width}×${img.height}`);
+  state.processedCanvas = null;
+}
+
+function getScaleAndOffset() {
+  const wrap = $('canvas-wrap');
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  const cw = mainCanvas.width, ch = mainCanvas.height;
+  const s = Math.min((ww * 0.95) / cw, (wh * 0.95) / ch, 1);
+  const ox = (ww - cw * s) / 2;
+  const oy = (wh - ch * s) / 2;
+  return { s, ox, oy };
+}
+
+mainCanvas.addEventListener('mousemove', e => {
+  const r = mainCanvas.getBoundingClientRect();
+  const { s } = getScaleAndOffset();
+  const x = Math.floor((e.clientX - r.left) / s);
+  const y = Math.floor((e.clientY - r.top) / s);
+  if (x >= 0 && y >= 0 && x < mainCanvas.width && y < mainCanvas.height) {
+    const d = ctx.getImageData(x, y, 1, 1).data;
+    $('cursor-pos').textContent = `X:${x} Y:${y}  rgb(${d[0]},${d[1]},${d[2]})`;
+  }
+});
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    $('inf-mode').textContent = btn.textContent;
+    $('panel-bw').style.display = state.mode === 'bw' ? 'block' : 'none';
+    $('panel-dither').style.display = state.mode === 'dither' ? 'block' : 'none';
+    $('panel-halftone').style.display = state.mode === 'halftone' ? 'block' : 'none';
+  });
+});
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const r = btn.dataset.ratio;
+    if (r === 'free') {
+      state.cropRatio = null;
+    } else {
+      const [a, b2] = r.split(':').map(Number);
+      state.cropRatio = a / b2;
+      const w = parseInt($('out-w').value);
+      const newH = Math.round(w / state.cropRatio);
+      $('out-h').value = newH;
+    }
+  });
+});
+
+$('out-w').addEventListener('input', () => {
+  if (state.cropRatio) {
+    $('out-h').value = Math.round(parseInt($('out-w').value) / state.cropRatio);
+  }
+});
+
+$('out-h').addEventListener('input', () => {
+  if (state.cropRatio) {
+    $('out-w').value = Math.round(parseInt($('out-h').value) * state.cropRatio);
+  }
+});
+
+function linkSlider(sliderId, valId) {
+  const sl = $(sliderId), vl = $(valId);
+  sl.addEventListener('input', () => { vl.textContent = sl.value; });
+}
+
+linkSlider('bw-threshold', 'bw-threshold-val');
+linkSlider('bw-contrast', 'bw-contrast-val');
+linkSlider('dither-threshold', 'dither-threshold-val');
+linkSlider('dither-noise', 'dither-noise-val');
+linkSlider('ht-levels', 'ht-levels-val');
+linkSlider('ht-block', 'ht-block-val');
+
+$('btn-crop').addEventListener('click', applyCrop);
+$('btn-reset-crop').addEventListener('click', resetCrop);
+$('btn-process').addEventListener('click', processImage);
+$('btn-clear').addEventListener('click', clearAll);
+$('btn-export').addEventListener('click', () => exportImage('png'));
+$('btn-export-jpg').addEventListener('click', () => exportImage('jpg'));
+
+function applyCrop() {
+  if (!state.origImage) return;
+  const tw = parseInt($('out-w').value);
+  const th = parseInt($('out-h').value);
+  if (!tw || !th) return;
+
+  const img = state.origImage;
+  const srcAR = img.width / img.height;
+  const dstAR = tw / th;
+
+  let sx, sy, sw, sh;
+  if (srcAR > dstAR) {
+    sh = img.height;
+    sw = sh * dstAR;
+    sx = (img.width - sw) / 2;
+    sy = 0;
+  } else {
+    sw = img.width;
+    sh = sw / dstAR;
+    sx = 0;
+    sy = (img.height - sh) / 2;
+  }
+
+  workCanvas.width = tw;
+  workCanvas.height = th;
+  wctx.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
+
+  const croppedImg = new Image();
+  croppedImg.onload = () => {
+    state.croppedImage = croppedImg;
+    renderToMain(croppedImg);
+    $('inf-out').textContent = `${tw} × ${th}`;
+    setStatus(`裁剪完成: ${tw}×${th}`);
+  };
+  croppedImg.src = workCanvas.toDataURL();
+}
+
+function resetCrop() {
+  if (!state.origImage) return;
+  state.croppedImage = state.origImage;
+  $('out-w').value = state.origImage.width;
+  $('out-h').value = state.origImage.height;
+  $('inf-out').textContent = `${state.origImage.width} × ${state.origImage.height}`;
+  renderToMain(state.origImage);
+  setStatus('已还原原始图像');
+}
+
+function toGray(r, g, b) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function applyContrast(v, contrast) {
+  const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+  return Math.min(255, Math.max(0, factor * (v - 128) + 128));
+}
+
+function processImage() {
+  const src = state.croppedImage;
+  if (!src) { setStatus('请先导入图像'); return; }
+
+  const W = src.width, H = src.height;
+  workCanvas.width = W;
+  workCanvas.height = H;
+  wctx.drawImage(src, 0, 0);
+  const imageData = wctx.getImageData(0, 0, W, H);
+  const data = imageData.data;
+
+  if (state.mode === 'none') {
+    renderToMain(src);
+    setStatus('原图模式');
+    return;
+  }
+
+  if (state.mode === 'bw') {
+    processBW(data, W, H);
+  } else if (state.mode === 'dither') {
+    processDither(data, W, H);
+  } else if (state.mode === 'halftone') {
+    processHalftone(data, W, H);
+    wctx.putImageData(imageData, 0, 0);
+    renderProcessed();
+    drawHistogram(src);
+    return;
+  }
+
+  wctx.putImageData(imageData, 0, 0);
+  renderProcessed();
+  drawHistogram(src);
+}
+
+function processBW(data, W, H) {
+  const threshold = parseInt($('bw-threshold').value);
+  const contrast = parseInt($('bw-contrast').value);
+  for (let i = 0; i < data.length; i += 4) {
+    let g = toGray(data[i], data[i+1], data[i+2]);
+    g = applyContrast(g, contrast);
+    const v = g >= threshold ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = v;
+  }
+  setStatus('黑白处理完成');
+}
+
+function processDither(data, W, H) {
+  const algo = $('dither-algo').value;
+  const threshold = parseInt($('dither-threshold').value);
+  const noise = parseInt($('dither-noise').value);
+
+  const gray = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    gray[i] = toGray(data[i*4], data[i*4+1], data[i*4+2]);
+  }
+
+  const bayer8 = [
+     0,32, 8,40, 2,34,10,42,
+    48,16,56,24,50,18,58,26,
+    12,44, 4,36,14,46, 6,38,
+    60,28,52,20,62,30,54,22,
+     3,35,11,43, 1,33, 9,41,
+    51,19,59,27,49,17,57,25,
+    15,47, 7,39,13,45, 5,37,
+    63,31,55,23,61,29,53,21
+  ];
+
+  if (algo === 'floyd') {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const n = noise > 0 ? (Math.random() - 0.5) * noise : 0;
+        const old = Math.min(255, Math.max(0, gray[idx] + n));
+        const nv = old >= threshold ? 255 : 0;
+        const err = old - nv;
+        gray[idx] = nv;
+        if (x+1 < W) gray[idx+1] += err * 7/16;
+        if (y+1 < H) {
+          if (x > 0) gray[idx+W-1] += err * 3/16;
+          gray[idx+W] += err * 5/16;
+          if (x+1 < W) gray[idx+W+1] += err * 1/16;
+        }
+      }
+    }
+  } else if (algo === 'atkinson') {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const n = noise > 0 ? (Math.random() - 0.5) * noise : 0;
+        const old = Math.min(255, Math.max(0, gray[idx] + n));
+        const nv = old >= threshold ? 255 : 0;
+        const err = (old - nv) / 8;
+        gray[idx] = nv;
+        if (x+1 < W) gray[idx+1] += err;
+        if (x+2 < W) gray[idx+2] += err;
+        if (y+1 < H) {
+          if (x > 0) gray[idx+W-1] += err;
+          gray[idx+W] += err;
+          if (x+1 < W) gray[idx+W+1] += err;
+        }
+        if (y+2 < H) gray[idx+2*W] += err;
+      }
+    }
+  } else if (algo === 'ordered') {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const bayerVal = bayer8[(y % 8) * 8 + (x % 8)];
+        // map bayer 0-63 to -127..+127 offset range, scaled by noise
+        const spread = 127 + noise * 1.2;
+        const offset = (bayerVal / 63 - 0.5) * spread;
+        gray[idx] = (gray[idx] + offset) >= threshold ? 255 : 0;
+      }
+    }
+  } else if (algo === 'random') {
+    for (let i = 0; i < gray.length; i++) {
+      const n = (Math.random() - 0.5) * (noise + 60);
+      gray[i] = (gray[i] + n) >= threshold ? 255 : 0;
+    }
+  }
+
+  for (let i = 0; i < W * H; i++) {
+    const v = Math.round(Math.min(255, Math.max(0, gray[i])));
+    data[i*4] = data[i*4+1] = data[i*4+2] = v;
+  }
+  setStatus(`抖动完成 (${$('dither-algo').options[$('dither-algo').selectedIndex].text})`);
+}
+
+function processHalftone(data, W, H) {
+  const levels = parseInt($('ht-levels').value);
+  const block = parseInt($('ht-block').value);
+  const pattern = $('ht-pattern').value;
+  const keepColor = $('ht-color').checked;
+
+  const out = new Uint8ClampedArray(data.length);
+  for (let i = 0; i < out.length; i += 4) out[i+3] = 255;
+
+  for (let by = 0; by < H; by += block) {
+    for (let bx = 0; bx < W; bx += block) {
+      let sr = 0, sg = 0, sb = 0, cnt = 0;
+      for (let dy = 0; dy < block && by+dy < H; dy++) {
+        for (let dx = 0; dx < block && bx+dx < W; dx++) {
+          const p = ((by+dy)*W+(bx+dx))*4;
+          sr += data[p]; sg += data[p+1]; sb += data[p+2];
+          cnt++;
+        }
+      }
+      sr = sr/cnt; sg = sg/cnt; sb = sb/cnt;
+      const g = toGray(sr, sg, sb);
+      const level = Math.round((g / 255) * (levels - 1)) / (levels - 1);
+
+      const fr = keepColor ? sr : g;
+      const fg = keepColor ? sg : g;
+      const fb = keepColor ? sb : g;
+
+      for (let dy = 0; dy < block && by+dy < H; dy++) {
+        for (let dx = 0; dx < block && bx+dx < W; dx++) {
+          const p = ((by+dy)*W+(bx+dx))*4;
+          const cx = dx - block/2 + 0.5;
+          const cy = dy - block/2 + 0.5;
+          const half = block / 2;
+          let filled = false;
+
+          if (pattern === 'square') {
+            const size = level * half;
+            filled = Math.abs(cx) <= size && Math.abs(cy) <= size;
+          } else if (pattern === 'circle') {
+            const r = level * half * 1.1;
+            filled = Math.sqrt(cx*cx + cy*cy) <= r;
+          } else if (pattern === 'line') {
+            filled = Math.abs(cy) <= level * half * 1.2;
+          } else if (pattern === 'cross') {
+            const r = level * half * 1.1;
+            filled = Math.abs(cx) <= r * 0.4 || Math.abs(cy) <= r * 0.4;
+          } else if (pattern === 'diamond') {
+            filled = (Math.abs(cx) + Math.abs(cy)) <= level * half * 1.4;
+          }
+
+          if (filled) {
+            out[p] = fr; out[p+1] = fg; out[p+2] = fb;
+          } else {
+            out[p] = out[p+1] = out[p+2] = 0;
+          }
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < data.length; i++) data[i] = out[i];
+  setStatus(`色阶像素完成 (${levels}级 / ${block}px块 / ${pattern})`);
+}
+
+function renderProcessed() {
+  mainCanvas.width = workCanvas.width;
+  mainCanvas.height = workCanvas.height;
+  ctx.drawImage(workCanvas, 0, 0);
+  state.processedCanvas = workCanvas;
+}
+
+function drawHistogram(img) {
+  const hc = $('histogram-canvas');
+  const hw = hc.parentElement.clientWidth - 32;
+  hc.width = hw;
+  hc.height = 60;
+  const hctx = hc.getContext('2d');
+
+  const tmp = document.createElement('canvas');
+  tmp.width = img.width; tmp.height = img.height;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(img, 0, 0);
+  const d = tctx.getImageData(0, 0, img.width, img.height).data;
+
+  const bins = new Array(256).fill(0);
+  for (let i = 0; i < d.length; i += 4) {
+    bins[Math.floor(toGray(d[i], d[i+1], d[i+2]))]++;
+  }
+  const max = Math.max(...bins);
+
+  hctx.clearRect(0, 0, hw, 60);
+  for (let i = 0; i < 256; i++) {
+    const x = Math.floor(i * hw / 256);
+    const h = (bins[i] / max) * 58;
+    const lum = i / 255;
+    hctx.fillStyle = `rgba(${Math.round(lum*200+55)},${Math.round(lum*245+10)},${Math.round(lum*60)},0.7)`;
+    hctx.fillRect(x, 60 - h, Math.ceil(hw/256), h);
+  }
+}
+
+function extractPalette(img) {
+  const k = 8;
+  const tmp = document.createElement('canvas');
+  const scale = Math.min(1, 100 / Math.max(img.width, img.height));
+  tmp.width = Math.floor(img.width * scale);
+  tmp.height = Math.floor(img.height * scale);
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(img, 0, 0, tmp.width, tmp.height);
+  const d = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+
+  const pixels = [];
+  for (let i = 0; i < d.length; i += 16) {
+    pixels.push([d[i], d[i+1], d[i+2]]);
+  }
+
+  let centers = [];
+  for (let i = 0; i < k; i++) {
+    centers.push(pixels[Math.floor(Math.random() * pixels.length)].slice());
+  }
+
+  for (let iter = 0; iter < 10; iter++) {
+    const sums = Array.from({length: k}, () => [0,0,0,0]);
+    for (const p of pixels) {
+      let best = 0, bestD = Infinity;
+      for (let c = 0; c < k; c++) {
+        const d2 = (p[0]-centers[c][0])**2+(p[1]-centers[c][1])**2+(p[2]-centers[c][2])**2;
+        if (d2 < bestD) { bestD = d2; best = c; }
+      }
+      sums[best][0] += p[0]; sums[best][1] += p[1]; sums[best][2] += p[2]; sums[best][3]++;
+    }
+    for (let c = 0; c < k; c++) {
+      if (sums[c][3] > 0) {
+        centers[c] = [sums[c][0]/sums[c][3], sums[c][1]/sums[c][3], sums[c][2]/sums[c][3]];
+      }
+    }
+  }
+
+  const strip = $('palette-strip');
+  strip.innerHTML = '';
+  centers.forEach(c => {
+    const r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
+    const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch';
+    sw.style.background = hex;
+    sw.title = hex;
+    sw.addEventListener('click', () => {
+      navigator.clipboard.writeText(hex).catch(()=>{});
+      $('hex-display').textContent = `已复制: ${hex}`;
+      setTimeout(() => $('hex-display').textContent = '', 2000);
+    });
+    strip.appendChild(sw);
+  });
+}
+
+function exportImage(fmt) {
+  const canvas = (state.mode !== 'none' && state.processedCanvas) ? workCanvas : mainCanvas;
+  if (!canvas || canvas.width === 0) { setStatus('无可导出内容'); return; }
+  const mimeType = fmt === 'jpg' ? 'image/jpeg' : 'image/png';
+  const quality = fmt === 'jpg' ? 0.92 : undefined;
+  const dataUrl = canvas.toDataURL(mimeType, quality);
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = `${state.fileName}_pixellab.${fmt}`;
+  a.click();
+  setStatus(`已导出 ${state.fileName}_pixellab.${fmt}`);
+}
+
+function clearAll() {
+  state.origImage = null;
+  state.croppedImage = null;
+  state.processedCanvas = null;
+  mainCanvas.style.display = 'none';
+  $('empty-state').style.display = 'block';
+  $('inf-status').textContent = '等待图像';
+  $('inf-orig').textContent = '—';
+  $('inf-out').textContent = '—';
+  $('inf-name').textContent = '—';
+  $('inf-depth').textContent = '—';
+  $('palette-strip').innerHTML = '';
+  const hc = $('histogram-canvas');
+  hc.getContext('2d').clearRect(0, 0, hc.width, hc.height);
+  setStatus('已清空');
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+['dither-algo','ht-levels','ht-block','ht-pattern','ht-color',
+ 'bw-threshold','bw-contrast','dither-threshold','dither-noise'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('change', () => {
+    if (state.croppedImage && state.mode !== 'none') processImage();
+  });
+});
+
+['bw-threshold','bw-contrast','dither-threshold','dither-noise','ht-levels','ht-block'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('mouseup', () => {
+    if (state.croppedImage && state.mode !== 'none') processImage();
+  });
+});
+
+$('inf-depth').textContent = '32-bit RGBA';
+setStatus('准备就绪 — 拖拽或点击左侧导入图像');
+</script>
 </body>
 </html>
