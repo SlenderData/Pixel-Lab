@@ -496,6 +496,15 @@
     <div class="panel-section" id="panel-bw" style="display:none">
       <h3>黑白参数</h3>
       <div class="param-row">
+        <span class="param-label">算法</span>
+      </div>
+      <select id="bw-algo" style="margin-bottom:10px">
+        <option value="simple">简单阈值</option>
+        <option value="adaptive">自适应阈值</option>
+        <option value="edge">边缘检测 (Sobel)</option>
+        <option value="edgeblend">边缘叠加</option>
+      </select>
+      <div class="param-row">
         <span class="param-label">阈值</span>
         <input type="range" id="bw-threshold" min="0" max="255" value="128">
         <span class="param-value" id="bw-threshold-val">128</span>
@@ -504,6 +513,26 @@
         <span class="param-label">对比度</span>
         <input type="range" id="bw-contrast" min="-100" max="100" value="0">
         <span class="param-value" id="bw-contrast-val">0</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">锐化</span>
+        <input type="range" id="bw-sharpen" min="0" max="10" value="0" step="1">
+        <span class="param-value" id="bw-sharpen-val">0</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">模糊去噪</span>
+        <input type="range" id="bw-blur" min="0" max="5" value="0" step="1">
+        <span class="param-value" id="bw-blur-val">0</span>
+      </div>
+      <div class="param-row" id="row-adaptive-radius">
+        <span class="param-label">局部半径</span>
+        <input type="range" id="bw-adapt-r" min="3" max="31" value="11" step="2">
+        <span class="param-value" id="bw-adapt-r-val">11</span>
+      </div>
+      <div class="param-row" id="row-edge-strength">
+        <span class="param-label">边缘强度</span>
+        <input type="range" id="bw-edge-strength" min="1" max="100" value="30">
+        <span class="param-value" id="bw-edge-strength-val">30</span>
       </div>
     </div>
 
@@ -775,6 +804,19 @@ function linkSlider(sliderId, valId) {
 
 linkSlider('bw-threshold', 'bw-threshold-val');
 linkSlider('bw-contrast', 'bw-contrast-val');
+linkSlider('bw-sharpen', 'bw-sharpen-val');
+linkSlider('bw-blur', 'bw-blur-val');
+linkSlider('bw-adapt-r', 'bw-adapt-r-val');
+linkSlider('bw-edge-strength', 'bw-edge-strength-val');
+
+$('bw-algo').addEventListener('change', () => {
+  const algo = $('bw-algo').value;
+  $('row-adaptive-radius').style.display = algo === 'adaptive' ? 'flex' : 'none';
+  $('row-edge-strength').style.display = (algo === 'edge' || algo === 'edgeblend') ? 'flex' : 'none';
+  if (state.croppedImage && state.mode === 'bw') processImage();
+});
+$('row-adaptive-radius').style.display = 'none';
+$('row-edge-strength').style.display = 'none';
 linkSlider('dither-threshold', 'dither-threshold-val');
 linkSlider('dither-noise', 'dither-noise-val');
 linkSlider('ht-levels', 'ht-levels-val');
@@ -877,16 +919,121 @@ function processImage() {
   drawHistogram(src);
 }
 
+function convolve3x3(gray, W, H, kernel) {
+  const out = new Float32Array(gray.length);
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      let sum = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          sum += gray[(y + ky) * W + (x + kx)] * kernel[(ky + 1) * 3 + (kx + 1)];
+        }
+      }
+      out[y * W + x] = sum;
+    }
+  }
+  for (let x = 0; x < W; x++) { out[x] = out[W + x]; out[(H-1)*W+x] = out[(H-2)*W+x]; }
+  for (let y = 0; y < H; y++) { out[y*W] = out[y*W+1]; out[y*W+W-1] = out[y*W+W-2]; }
+  return out;
+}
+
+function boxBlur(gray, W, H, radius) {
+  let src = gray.slice();
+  const size = radius * 2 + 1;
+  const tmp = new Float32Array(gray.length);
+  for (let y = 0; y < H; y++) {
+    let sum = 0;
+    for (let x = 0; x < size && x < W; x++) sum += src[y * W + x];
+    for (let x = 0; x < W; x++) {
+      tmp[y * W + x] = sum / Math.min(size, W);
+      if (x + radius + 1 < W) sum += src[y * W + x + radius + 1];
+      if (x - radius >= 0) sum -= src[y * W + x - radius];
+    }
+  }
+  const out = new Float32Array(gray.length);
+  for (let x = 0; x < W; x++) {
+    let sum = 0;
+    for (let y = 0; y < size && y < H; y++) sum += tmp[y * W + x];
+    for (let y = 0; y < H; y++) {
+      out[y * W + x] = sum / Math.min(size, H);
+      if (y + radius + 1 < H) sum += tmp[(y + radius + 1) * W + x];
+      if (y - radius >= 0) sum -= tmp[(y - radius) * W + x];
+    }
+  }
+  return out;
+}
+
+function sobelEdge(gray, W, H) {
+  const kx = [-1,0,1,-2,0,2,-1,0,1];
+  const ky = [-1,-2,-1,0,0,0,1,2,1];
+  const gx = convolve3x3(gray, W, H, kx);
+  const gy = convolve3x3(gray, W, H, ky);
+  const mag = new Float32Array(gray.length);
+  for (let i = 0; i < mag.length; i++) {
+    mag[i] = Math.sqrt(gx[i] * gx[i] + gy[i] * gy[i]);
+  }
+  return mag;
+}
+
 function processBW(data, W, H) {
+  const algo = $('bw-algo').value;
   const threshold = parseInt($('bw-threshold').value);
   const contrast = parseInt($('bw-contrast').value);
-  for (let i = 0; i < data.length; i += 4) {
-    let g = toGray(data[i], data[i+1], data[i+2]);
-    g = applyContrast(g, contrast);
-    const v = g >= threshold ? 255 : 0;
-    data[i] = data[i+1] = data[i+2] = v;
+  const sharpen = parseInt($('bw-sharpen').value);
+  const blurR = parseInt($('bw-blur').value);
+  const edgeStrength = parseInt($('bw-edge-strength').value);
+  const adaptR = parseInt($('bw-adapt-r').value);
+
+  let gray = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    gray[i] = toGray(data[i*4], data[i*4+1], data[i*4+2]);
   }
-  setStatus('黑白处理完成');
+
+  if (blurR > 0) gray = boxBlur(gray, W, H, blurR);
+
+  if (sharpen > 0) {
+    const blurred = boxBlur(gray, W, H, 1);
+    for (let i = 0; i < gray.length; i++) {
+      gray[i] = Math.min(255, Math.max(0, gray[i] + (gray[i] - blurred[i]) * sharpen));
+    }
+  }
+
+  if (contrast !== 0) {
+    for (let i = 0; i < gray.length; i++) gray[i] = applyContrast(gray[i], contrast);
+  }
+
+  const out = new Uint8ClampedArray(W * H);
+
+  if (algo === 'simple') {
+    for (let i = 0; i < gray.length; i++) {
+      out[i] = gray[i] >= threshold ? 255 : 0;
+    }
+  } else if (algo === 'adaptive') {
+    const localMean = boxBlur(gray, W, H, adaptR);
+    const bias = threshold - 128;
+    for (let i = 0; i < gray.length; i++) {
+      out[i] = gray[i] >= (localMean[i] + bias) ? 255 : 0;
+    }
+  } else if (algo === 'edge') {
+    const mag = sobelEdge(gray, W, H);
+    for (let i = 0; i < mag.length; i++) {
+      out[i] = mag[i] >= edgeStrength ? 0 : 255;
+    }
+  } else if (algo === 'edgeblend') {
+    const mag = sobelEdge(gray, W, H);
+    for (let i = 0; i < gray.length; i++) {
+      const isEdge = mag[i] >= edgeStrength;
+      const base = gray[i] >= threshold ? 255 : 0;
+      out[i] = isEdge ? 0 : base;
+    }
+  }
+
+  for (let i = 0; i < W * H; i++) {
+    data[i*4] = data[i*4+1] = data[i*4+2] = out[i];
+  }
+
+  const algoNames = { simple:'简单阈值', adaptive:'自适应阈值', edge:'边缘检测', edgeblend:'边缘叠加' };
+  setStatus(`黑白处理完成 (${algoNames[algo]})`);
 }
 
 function processDither(data, W, H) {
@@ -1166,14 +1313,16 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 ['dither-algo','ht-levels','ht-block','ht-pattern','ht-color',
- 'bw-threshold','bw-contrast','dither-threshold','dither-noise'].forEach(id => {
+ 'bw-threshold','bw-contrast','bw-sharpen','bw-blur','bw-adapt-r','bw-edge-strength',
+ 'dither-threshold','dither-noise'].forEach(id => {
   const el = $(id);
   if (el) el.addEventListener('change', () => {
     if (state.croppedImage && state.mode !== 'none') processImage();
   });
 });
 
-['bw-threshold','bw-contrast','dither-threshold','dither-noise','ht-levels','ht-block'].forEach(id => {
+['bw-threshold','bw-contrast','bw-sharpen','bw-blur','bw-adapt-r','bw-edge-strength',
+ 'dither-threshold','dither-noise','ht-levels','ht-block'].forEach(id => {
   const el = $(id);
   if (el) el.addEventListener('mouseup', () => {
     if (state.croppedImage && state.mode !== 'none') processImage();
