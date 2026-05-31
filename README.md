@@ -2,6 +2,10 @@
 
 一个纯前端的图像像素化处理工具，无需安装、无需服务器，下载 HTML 文件用浏览器打开即可使用。
 
+> 本项目所有代码（`pixellab.html`）及文档（`README.md`）均由 [Claude](https://claude.ai)（Anthropic）编写，包括后续的 bug 修复与功能迭代。
+
+**[→ 在线使用](https://slenderdata.github.io/Pixel-Lab/pixellab.html)**
+
 ## 功能概览
 
 ### 导入图像
@@ -59,8 +63,6 @@
 - **导出 JPG**：92% 质量，文件体积更小
 - 文件名自动附加 `_pixellab` 后缀
 
----
-
 ## 技术实现
 
 - 纯原生 HTML / CSS / JavaScript，零依赖，零构建步骤
@@ -69,17 +71,13 @@
 - 调色板提取使用 K-Means 聚类（k=8，迭代 10 次）
 - 有序抖动采用标准 8×8 Bayer 矩阵（64 阶）
 
----
-
 ## 使用方式
 
-无需安装，直接用任意现代浏览器打开 `pixellab.html` 即可。
+直接访问 **[在线版本](https://slenderdata.github.io/Pixel-Lab/pixellab.html)**，或下载 `pixellab.html` 后用任意现代浏览器本地打开。
 
 ```
 建议浏览器：Chrome 90+ / Firefox 88+ / Safari 14+ / Edge 90+
 ```
-
----
 
 ## 文件结构
 
@@ -88,8 +86,6 @@ pixellab.html    # 完整应用，单文件，自包含
 README.md        # 本文档
 LICENSE          # 许可证
 ```
-
----
 
 ## 关于
 
