@@ -2,8 +2,6 @@
 
 一个纯前端的图像像素化处理工具，无需安装、无需服务器，下载 HTML 文件用浏览器打开即可使用。
 
-> 本项目所有代码（`pixellab.html`）及文档（`README.md`）均由 [Claude](https://claude.ai)（Anthropic）编写，包括后续的 bug 修复与功能迭代。
-
 **[→ 在线使用](https://slenderdata.github.io/Pixel-Lab/pixellab.html)**
 
 ## 功能概览
@@ -96,9 +94,6 @@
 ```
 pixellab.html    # 完整应用，单文件，自包含
 README.md        # 本文档
-LICENSE          # MIT 许可证
+LICENSE          # 许可证
 ```
 
-## 关于
-
-本项目代码与文档全部由 Claude（claude.ai，Anthropic）生成，包括应用逻辑、样式、算法实现及本 README。
